@@ -2,16 +2,24 @@
 <html>
 <body>
 <div id="cameraViewContainer" style="width: 100%; height: 60vh"></div>
+<button id="drawShapes">Click to Draw Shapes</button><br /><br />
 <textarea id="results" style="width: 100%; min-height: 30vh; font-size: 3vmin; overflow: auto" disabled></textarea>
 <script src="https://cdn.jsdelivr.net/npm/dynamsoft-barcode-reader@10.2.10/dist/dbr.bundle.js"></script>
 <script>
   Dynamsoft.License.LicenseManager.initLicense("DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9");
   Dynamsoft.Core.CoreModule.loadWasm(["dbr"]);
-  (async () => {
-    let router = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
 
-    let view = await Dynamsoft.DCE.CameraView.createInstance();
-    let cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(view);
+  let router = null;
+  let view = null;
+  let cameraEnhancer = null;
+
+  document.getElementById("drawShapes").onclick = drawShapes;
+
+  (async () => {
+    router = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
+    view = await Dynamsoft.DCE.CameraView.createInstance();
+    cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(view);
+
     document.querySelector("#cameraViewContainer").append(view.getUIElement());
     router.setInput(cameraEnhancer);
 
@@ -33,7 +41,14 @@
 
     await cameraEnhancer.open();
     await router.startCapturing("ReadBarcodes_SpeedFirst");
+    
   })();
+
+  function drawShapes(){
+    let drawingLayer = view.createDrawingLayer();
+    let rect = new Dynamsoft.DCE.RectDrawingItem({x: 100,y: 100,width: 300,height: 300});
+    drawingLayer.addDrawingItems([rect]);
+  }
 </script>
 </body>
 </html>
