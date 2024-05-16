@@ -20,6 +20,10 @@
   let settings = null;
   let drawingLayer = null;
   let resultsContainer = null;
+  let shapes = [];
+
+  let IMEIBarcodes = {};
+  let SKUBarcodes = {};
 
   document.getElementById("drawShapes").onclick = drawShapes;
   document.getElementById("removeShapes").onclick = removeShapes;
@@ -43,24 +47,32 @@
     await router.startCapturing(ROUTER_TEMPLATE);
   })();
 
-  let rect = null;
   function drawShapes(){
-    rect = new Dynamsoft.DCE.RectDrawingItem({x: 100,y: 100,width: 300,height: 300});
-    drawingLayer.addDrawingItems([rect]);
+    for (let imei in IMEIBarcodes) {
+      const barcode = IMEIBarcodes[imei];
+      const [bottomLeft, bottomRight, topRight, topLeft] = barcode.barcodeLoc;
+      const {x, y} = bottomLeft;
+      width = bottomRight.x - bottomLeft.x;
+      height = topLeft.y - bottomLeft.y;
+      const shape = new Dynamsoft.DCE.RectDrawingItem({x, y, width, height});
+      shapes.push(shape);
+    }
+    drawingLayer.addDrawingItems(shapes);
   }
 
   function removeShapes() {
-    drawingLayer.removeDrawingItems([rect]);
+    drawingLayer.removeDrawingItems(shapes);
+    shapes = [];
   }
 
   function decodeBarcodes(result) {
     if (result.barcodeResultItems.length > 0) {
         resultsContainer.textContent = '';
         for (let item of result.barcodeResultItems) {
-          const barcode = parseBarcode(item);
-          console.log(barcode);
-          // resultsContainer.textContent += `${item.formatString}: ${item.text}\n\n`;
+          parseBarcode(item);
         }
+        removeShapes();
+        drawShapes();
     }
   }
 
@@ -70,18 +82,15 @@
 
   function parseBarcode(barcodeItem) {
     const barcodeText = barcodeItem.text;
+    const barcodeLoc = barcodeItem.location.points;
     let barcodeType = null;
     if (isIMEI(barcodeText)) {
-      barcodeType = "IMEI"
+      barcodeType = "IMEI";
+      IMEIBarcodes[barcodeText] = {barcodeText, barcodeType, barcodeLoc, shape: null}
     } else {
-      barcodeType = "SKU"
+      barcodeType = "SKU";
     }
-    const barcodeLoc = barcodeItem.location.points;
-    return {
-      barcodeText,
-      barcodeType,
-      barcodeLoc
-    }
+    return barcodeText;
   }
 
 </script>
