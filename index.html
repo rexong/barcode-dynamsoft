@@ -6,6 +6,7 @@
 <button id="removeShapes">Click to Remove Shapes</button><br /><br />
 <textarea id="results" style="width: 100%; min-height: 30vh; font-size: 3vmin; overflow: auto" disabled></textarea>
 <script src="https://cdn.jsdelivr.net/npm/dynamsoft-barcode-reader@10.2.10/dist/dbr.bundle.js"></script>
+<script src="helper.js"></script>
 <script>
   Dynamsoft.License.LicenseManager.initLicense("DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9");
   Dynamsoft.Core.CoreModule.loadWasm(["dbr"]);
@@ -53,7 +54,7 @@
     const b = Math.floor(Math.random() * 256); 
 
     return `rgba(${r}, ${g}, ${b}, 1)`;
-}
+  }
 
   function drawRectangle(location, styling) {
     if (!location) return;
@@ -85,15 +86,30 @@
 
   function decodeBarcodes(result) {
     if (result.barcodeResultItems.length > 0) {
-        resultsContainer.textContent = '';
+        // resultsContainer.textContent = '';
         SKUBarcodes = [];
         for (let item of result.barcodeResultItems) {
           parseBarcode(item);
         }
-        // TODO
-        // findIMEINearestSKU();
+        if (SKUBarcodes.length > 0) {
+          const skuCoordArr = SKUBarcodes.map(sku => sku.barcodeLoc);
+          const skuTextArr = SKUBarcodes.map(sku => sku.barcodeText);
+          mapIMEItoSKU(skuCoordArr, skuTextArr);
+        }
         removeShapes();
         drawShapes();
+    }
+  }
+
+  function mapIMEItoSKU(coordArr, textArr) {
+    for (let imei in IMEIBarcodes) {
+      const barcode = IMEIBarcodes[imei];
+      const imeiLoc = barcode.barcodeLoc;
+      const skuIdx = nearestPair(coordArr, imeiLoc);
+      if (skuIdx !== -1) {
+        barcode.skuBarcodeLoc = coordArr[skuIdx];
+        barcode.skuBarcodeText = textArr[skuIdx];
+      }
     }
   }
 
@@ -115,7 +131,7 @@
           strokeStyle: randomRGBA(),
           lineWidth: 10
         });
-      IMEIBarcodes[barcodeText] = {barcodeText, barcodeType, barcodeLoc, skuBarcodeLoc: null, shapeStyling: newDrawingStyleID}
+      IMEIBarcodes[barcodeText] = {barcodeText, barcodeType, barcodeLoc, skuBarcodeLoc: null, shapeStyling: newDrawingStyleID, skuBarcodeText: ""}
     } else {
       barcodeType = "SKU";
       SKUBarcodes.push({barcodeText, barcodeType, barcodeLoc})
