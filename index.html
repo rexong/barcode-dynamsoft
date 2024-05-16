@@ -3,52 +3,87 @@
 <body>
 <div id="cameraViewContainer" style="width: 100%; height: 60vh"></div>
 <button id="drawShapes">Click to Draw Shapes</button><br /><br />
+<button id="removeShapes">Click to Remove Shapes</button><br /><br />
 <textarea id="results" style="width: 100%; min-height: 30vh; font-size: 3vmin; overflow: auto" disabled></textarea>
 <script src="https://cdn.jsdelivr.net/npm/dynamsoft-barcode-reader@10.2.10/dist/dbr.bundle.js"></script>
 <script>
   Dynamsoft.License.LicenseManager.initLicense("DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9");
   Dynamsoft.Core.CoreModule.loadWasm(["dbr"]);
 
+  //Dictates single or multiline barcode to read
+  const ROUTER_TEMPLATE = "ReadBarcodes_SpeedFirst";
+  const IMAGE_CAPTURE_INTERVAL = 1000;
+
   let router = null;
   let view = null;
   let cameraEnhancer = null;
+  let settings = null;
+  let drawingLayer = null;
+  let resultsContainer = null;
 
   document.getElementById("drawShapes").onclick = drawShapes;
+  document.getElementById("removeShapes").onclick = removeShapes;
 
   (async () => {
     router = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
     view = await Dynamsoft.DCE.CameraView.createInstance();
     cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(view);
+    settings = await router.getSimplifiedSettings(ROUTER_TEMPLATE);
+    settings.minImageCaptureInterval = IMAGE_CAPTURE_INTERVAL;
+    await router.updateSettings(ROUTER_TEMPLATE, settings);
+    drawingLayer = view.createDrawingLayer();
 
-    document.querySelector("#cameraViewContainer").append(view.getUIElement());
+    document.getElementById("cameraViewContainer").append(view.getUIElement());
     router.setInput(cameraEnhancer);
 
-    const resultsContainer = document.querySelector("#results");
-    router.addResultReceiver({ onDecodedBarcodesReceived: (result) => {
-      if (result.barcodeResultItems.length > 0) {
-      	console.log(result.barcodeResultItems);
-        resultsContainer.textContent = '';
-        for (let item of result.barcodeResultItems) {
-          resultsContainer.textContent += `${item.formatString}: ${item.text}\n\n`;
-        }
-      }
-    }});
-
-    // let filter = new Dynamsoft.Utility.MultiFrameResultCrossFilter();
-    // filter.enableResultCrossVerification("barcode", true);
-    // filter.enableResultDeduplication("barcode", true);
-    // await router.addResultFilter(filter);
+    resultsContainer = document.querySelector("#results");
+    router.addResultReceiver({ onDecodedBarcodesReceived: decodeBarcodes});
 
     await cameraEnhancer.open();
-    await router.startCapturing("ReadBarcodes_SpeedFirst");
-    
+    await router.startCapturing(ROUTER_TEMPLATE);
   })();
 
+  let rect = null;
   function drawShapes(){
-    let drawingLayer = view.createDrawingLayer();
-    let rect = new Dynamsoft.DCE.RectDrawingItem({x: 100,y: 100,width: 300,height: 300});
+    rect = new Dynamsoft.DCE.RectDrawingItem({x: 100,y: 100,width: 300,height: 300});
     drawingLayer.addDrawingItems([rect]);
   }
+
+  function removeShapes() {
+    drawingLayer.removeDrawingItems([rect]);
+  }
+
+  function decodeBarcodes(result) {
+    if (result.barcodeResultItems.length > 0) {
+        resultsContainer.textContent = '';
+        for (let item of result.barcodeResultItems) {
+          const barcode = parseBarcode(item);
+          console.log(barcode);
+          // resultsContainer.textContent += `${item.formatString}: ${item.text}\n\n`;
+        }
+    }
+  }
+
+  function isIMEI(value) {
+    return !isNaN(parseInt(value.charAt(0)));
+  }
+
+  function parseBarcode(barcodeItem) {
+    const barcodeText = barcodeItem.text;
+    let barcodeType = null;
+    if (isIMEI(barcodeText)) {
+      barcodeType = "IMEI"
+    } else {
+      barcodeType = "SKU"
+    }
+    const barcodeLoc = barcodeItem.location.points;
+    return {
+      barcodeText,
+      barcodeType,
+      barcodeLoc
+    }
+  }
+
 </script>
 </body>
 </html>
