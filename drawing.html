@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>DCEJS - Draw Shapes</title>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-camera-enhancer/dist/dce.js"></script>
+</head>
+<body style="width:80vw; height:600px; margin: 0 auto">
+    <br />
+    <button id="drawShapes">Click to Draw Shapes</button><br /><br />
+    <div id="enhancerUIContainer" style="width:100%; height:100%;"></div>
+    <script>
+      let cameraEnhancer = null;
+      let view = null;
+      document.getElementById('drawShapes').onclick = drawShapes;
+      (async () => {
+          view = await Dynamsoft.DCE.CameraView.createInstance();
+          cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(view);
+          document.getElementById("enhancerUIContainer").appendChild(view.getUIElement());
+          await cameraEnhancer.open();
+      })();
+        function drawShapes(){}
+    </script>
+</body>
+</html>
