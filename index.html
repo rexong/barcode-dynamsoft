@@ -23,7 +23,7 @@
   let shapes = [];
 
   let IMEIBarcodes = {};
-  let SKUBarcodes = {};
+  let SKUBarcodes = [];
 
   document.getElementById("drawShapes").onclick = drawShapes;
   document.getElementById("removeShapes").onclick = removeShapes;
@@ -47,15 +47,33 @@
     await router.startCapturing(ROUTER_TEMPLATE);
   })();
 
+  function randomRGBA() {
+    const r = Math.floor(Math.random() * 256); 
+    const g = Math.floor(Math.random() * 256); 
+    const b = Math.floor(Math.random() * 256); 
+
+    return `rgba(${r}, ${g}, ${b}, 1)`;
+}
+
+  function drawRectangle(location, styling) {
+    if (!location) return;
+    const [bottomLeft, bottomRight, topRight, topLeft] = location;
+    const {x, y} = bottomLeft;
+    width = bottomRight.x - bottomLeft.x;
+    height = topLeft.y - bottomLeft.y;
+    return new Dynamsoft.DCE.RectDrawingItem({x, y, width, height}, styling);
+  }
+
   function drawShapes(){
     for (let imei in IMEIBarcodes) {
       const barcode = IMEIBarcodes[imei];
-      const [bottomLeft, bottomRight, topRight, topLeft] = barcode.barcodeLoc;
-      const {x, y} = bottomLeft;
-      width = bottomRight.x - bottomLeft.x;
-      height = topLeft.y - bottomLeft.y;
-      const shape = new Dynamsoft.DCE.RectDrawingItem({x, y, width, height});
-      shapes.push(shape);
+      const styling = barcode.shapeStyling;
+      const imeiShape = drawRectangle(barcode.barcodeLoc, styling);
+      shapes.push(imeiShape);
+      const skuShape = drawRectangle(barcode.skuBarcodeLoc, styling);
+      if (skuShape) {
+        shapes.push(skuShape);
+      }
     }
     drawingLayer.addDrawingItems(shapes);
   }
@@ -68,9 +86,12 @@
   function decodeBarcodes(result) {
     if (result.barcodeResultItems.length > 0) {
         resultsContainer.textContent = '';
+        SKUBarcodes = [];
         for (let item of result.barcodeResultItems) {
           parseBarcode(item);
         }
+        // TODO
+        // findIMEINearestSKU();
         removeShapes();
         drawShapes();
     }
@@ -85,10 +106,19 @@
     const barcodeLoc = barcodeItem.location.points;
     let barcodeType = null;
     if (isIMEI(barcodeText)) {
+      if (barcodeText in IMEIBarcodes) {
+        IMEIBarcodes[barcodeText].barcodeLoc = barcodeLoc;
+        return barcodeText;
+      }
       barcodeType = "IMEI";
-      IMEIBarcodes[barcodeText] = {barcodeText, barcodeType, barcodeLoc, shape: null}
+      let newDrawingStyleID = Dynamsoft.DCE.DrawingStyleManager.createDrawingStyle({
+          strokeStyle: randomRGBA(),
+          lineWidth: 10
+        });
+      IMEIBarcodes[barcodeText] = {barcodeText, barcodeType, barcodeLoc, skuBarcodeLoc: null, shapeStyling: newDrawingStyleID}
     } else {
       barcodeType = "SKU";
+      SKUBarcodes.push({barcodeText, barcodeType, barcodeLoc})
     }
     return barcodeText;
   }
