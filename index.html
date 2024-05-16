@@ -86,7 +86,7 @@
 
   function decodeBarcodes(result) {
     if (result.barcodeResultItems.length > 0) {
-        // resultsContainer.textContent = '';
+        resultsContainer.textContent = '';
         SKUBarcodes = [];
         for (let item of result.barcodeResultItems) {
           parseBarcode(item);
@@ -98,6 +98,14 @@
         }
         removeShapes();
         drawShapes();
+        displayIMEISKUPair();
+    }
+  }
+
+  function displayIMEISKUPair() {
+    for (let imei in IMEIBarcodes) {
+      const barcode = IMEIBarcodes[imei];
+      resultsContainer.textContent += `${barcode.barcodeText}: ${barcode.skuBarcodeText}\n\n`;
     }
   }
 
