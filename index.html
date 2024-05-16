@@ -5,6 +5,8 @@
 <button id="drawShapes">Click to Draw Shapes</button><br /><br />
 <button id="removeShapes">Click to Remove Shapes</button><br /><br />
 <textarea id="results" style="width: 100%; min-height: 30vh; font-size: 3vmin; overflow: auto" disabled></textarea>
+<h1>Import a File</h1>
+<input type="file" id="fileInput" onchange="handleFileSelect(event)">
 <script src="https://cdn.jsdelivr.net/npm/dynamsoft-barcode-reader@10.2.10/dist/dbr.bundle.js"></script>
 <script src="helper.js"></script>
 <script>
@@ -145,6 +147,20 @@
       SKUBarcodes.push({barcodeText, barcodeType, barcodeLoc})
     }
     return barcodeText;
+  }
+
+  async function handleFileSelect(event) {
+    const file = event.target.files[0];
+    
+    if (file) {
+      resultsContainer.textContent = "";
+      const result = await router.capture(file);
+      for (let _item of result.items) {
+        resultsContainer.textContent += `${_item.formatString} : ${_item.text}\n`;
+      }  
+    } else {
+        console.error('No file selected.');
+    }
   }
 
 </script>
